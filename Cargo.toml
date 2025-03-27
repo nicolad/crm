@@ -14,3 +14,6 @@ shuttle-runtime = "0.53.0"
 shuttle-shared-db = { version = "0.53.0", features = ["postgres"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = "1"
+dotenv = "0.15.0"
+rig-core = "0.10.0"
+

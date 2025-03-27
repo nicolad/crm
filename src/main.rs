@@ -5,8 +5,10 @@ use apalis_cron::Schedule;
 use apalis_sql::postgres::PostgresStorage;
 use apalis_sql::Config;
 use chrono::{DateTime, Utc};
+use dotenv::dotenv;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::env;
 use std::str::FromStr;
 
 #[derive(Clone)]
@@ -39,6 +41,8 @@ async fn say_hello_world(job: Reminder, svc: Data<CronjobData>) {
 async fn shuttle_main(
     #[shuttle_shared_db::Postgres] conn_string: String,
 ) -> Result<MyService, shuttle_runtime::Error> {
+    dotenv().ok();
+
     let db = PgPoolOptions::new()
         .min_connections(5)
         .max_connections(5)
@@ -66,8 +70,12 @@ impl shuttle_runtime::Service for MyService {
         let config = Config::new("reminder::DailyReminder");
         let storage = PostgresStorage::new_with_config(self.db, config);
 
-        // Run the job every 10 seconds:
-        let schedule = Schedule::from_str("*/10 * * * * *").expect("Couldn't start the scheduler!");
+        // Create a schedule that runs every 2 minutes (at second 0).
+        // 0 */2 * * * * means:
+        // second: 0
+        // minute: every 2
+        // hour/day-of-month/month/day-of-week: any
+        let schedule = Schedule::from_str("0 */2 * * * *").expect("Couldn't create the schedule!");
 
         let cron_service_ext = CronjobData {
             message: "Hello world".to_string(),
