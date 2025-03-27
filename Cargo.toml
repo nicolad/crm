@@ -1,5 +1,5 @@
 [package]
-name = "openai"
+name = "crm"
 version = "0.1.0"
 edition = "2021"
 
@@ -26,9 +26,7 @@ tower-http = { version = "0.6.2", features = ["cors", "fs"] }
 rig-core = "0.10.0"
 dotenv = "0.15"
 reqwest = { version = "0.11", features = ["json"] }
-audrey = "0.3"
 futures = "0.3"
 unicode-segmentation = "1.10"
 chrono = "0.4"
-apalis = { version = "0.4", features = ["cron", "postgres", "extensions", "retry"] }
-
+apalis = { version = "0.4", features = ["cron", "postgres", "retry"] }
