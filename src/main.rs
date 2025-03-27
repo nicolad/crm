@@ -22,6 +22,16 @@ use std::str::FromStr;
 use thiserror::Error;
 use tracing::{debug, error, info, warn};
 
+const JOKE_AGENT_PREAMBLE: &str = r#"
+You are a humorous assistant that generates:
+1. A creative, funny email subject about a random topic
+2. A joke that matches the subject
+Respond ONLY in valid JSON format with:
+{ 
+  "subject": "your funny subject here",
+  "body": "your joke here (keep it work-appropriate)"
+}"#;
+
 #[derive(Clone)]
 struct CronjobData {
     message: String,
@@ -135,19 +145,36 @@ impl From<DateTime<Utc>> for Reminder {
 }
 
 async fn send_email_via_agent() -> AnyResult<()> {
-    // Setup basic logging or tracing
-    // Note: If this is called multiple times, you might see a warning about `tracing_subscriber` being initialized multiple times.
-    // For debugging, it's usually fine; otherwise consider centralizing this in main or shuttle_main.
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_target(false)
-        .init();
-
     info!("Preparing to send email via agent...");
 
     // Create a new DeepSeek client from env
     let client = providers::deepseek::Client::from_env();
     debug!("DeepSeek client created.");
+
+    let joke_agent = client
+        .agent("deepseek-chat")
+        .preamble(JOKE_AGENT_PREAMBLE)
+        .max_tokens(300)
+        .build();
+
+    // Generate joke content
+    let json_response = joke_agent
+        .prompt("Create email content with a random joke")
+        .await?;
+    info!("Generated joke content: {}", json_response);
+
+    // Parse JSON response
+    let email_content: serde_json::Value = serde_json::from_str(&json_response).map_err(|e| {
+        error!("Failed to parse JSON response: {e}");
+        EmailError(format!("Failed to parse JSON response: {e}"))
+    })?;
+
+    let subject = email_content["subject"]
+        .as_str()
+        .unwrap_or("Daily Laugh 😄");
+    let body = email_content["body"]
+        .as_str()
+        .unwrap_or("Oops, the joke didn't load! But here's a smile anyway: 😊");
 
     // Create an agent dedicated to sending emails
     let email_agent = client
@@ -158,19 +185,18 @@ async fn send_email_via_agent() -> AnyResult<()> {
         .build();
     debug!("Email agent built successfully.");
 
-    // Prompt the agent with instruction to send an email
-    let response = email_agent
-        .prompt(
-            r#"
-            Send an email with the following JSON:
-            {
-              "to": ["nicolai.vadim@gmail.com"],
-              "subject": "Greetings from Rust Agent (via Cron Job)",
-              "body": "<p>Hello from our Apalis Cron job!</p>"
-            }
-            "#,
-        )
-        .await;
+    // Construct email prompt with dynamic content
+    let email_prompt = format!(
+        r#"Send an email with:
+        {{
+            "to": ["nicolai.vadim@gmail.com"],
+            "subject": "{}",
+            "body": "<h2>Your Daily Dose of Humor</h2><p>{}</p><p>Have a great day! 🚀</p>"
+        }}"#,
+        subject, body
+    );
+
+    let response = email_agent.prompt(email_prompt).await;
 
     match response {
         Ok(r) => {
