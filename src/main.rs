@@ -15,7 +15,7 @@ use rig::{
     tool::Tool,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::env;
 use std::str::FromStr;
@@ -76,7 +76,7 @@ impl Tool for EmailSender {
         ToolDefinition {
             name: "send_email".to_string(),
             description: "Send an email using the Resend API.".to_owned(),
-            parameters: json!({
+            parameters: serde_json::json!({
                 "type": "object",
                 "properties": {
                     "to": {
@@ -113,7 +113,7 @@ impl Tool for EmailSender {
             }
         }
 
-        // Instantiate the Resend client from `RESEND_API_KEY`
+        // Instantiate the Resend client from the environment variable
         let resend = Resend::default();
         // This `from` must be a verified sender/domain in Resend:
         let from = "Acme <onboarding@resend.dev>";
@@ -144,6 +144,22 @@ impl From<DateTime<Utc>> for Reminder {
     }
 }
 
+/// A little helper to strip out code fences (```json ... ```) from LLM responses,
+/// in case the LLM includes them around valid JSON.
+fn sanitize_json(input: &str) -> String {
+    // Remove leading/trailing whitespace
+    let trimmed = input.trim();
+
+    // Replace any triple-backtick code fences
+    let without_fences = trimmed
+        .trim_start_matches("```json")
+        .trim_start_matches("```")
+        .trim_end_matches("```")
+        .trim();
+
+    without_fences.to_string()
+}
+
 async fn send_email_via_agent() -> AnyResult<()> {
     info!("Preparing to send email via agent...");
 
@@ -163,8 +179,11 @@ async fn send_email_via_agent() -> AnyResult<()> {
         .await?;
     info!("Generated joke content: {}", json_response);
 
+    // Sanitize the response in case it comes back wrapped in ```json fences
+    let sanitized = sanitize_json(&json_response);
+
     // Parse JSON response
-    let email_content: serde_json::Value = serde_json::from_str(&json_response).map_err(|e| {
+    let email_content: serde_json::Value = serde_json::from_str(&sanitized).map_err(|e| {
         error!("Failed to parse JSON response: {e}");
         EmailError(format!("Failed to parse JSON response: {e}"))
     })?;
@@ -259,6 +278,7 @@ impl shuttle_runtime::Service for MyService {
             .expect("Unable to run migrations :(");
         info!("PostgresStorage migrations completed successfully.");
 
+        // You can provide a unique namespace name in `Config::new`
         let config = Config::new("reminder::DailyReminder");
         let storage = PostgresStorage::new_with_config(self.db.clone(), config);
         debug!("PostgresStorage with custom config created.");
