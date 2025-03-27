@@ -2,31 +2,15 @@
 name = "crm"
 version = "0.1.0"
 edition = "2021"
+publish = false
 
 [dependencies]
-async-openai = "0.28.0"
-argon2 = "0.5.3"
-axum = "0.7.4"
-axum-extra = { version = "0.9.4", features = ["cookie", "cookie-private"] }
-derive_more = { version = "1.0.0", features = ["full"] }
-jsonwebtoken = "9.3.0"
-serde = { version = "1.0.215", features = ["derive"] }
-serde_json = "1.0.133"
-shuttle-axum = { version = "0.53.0", default-features = false, features = ["axum-0-7"] }
-shuttle-openai = "0.53.0"
+apalis = { version = "0.6", features = ["retry"] }
+apalis-sql = { version = "0.6", features = ["postgres"] }
+apalis-cron = { version = "0.6" }
+chrono = { version = "0.4.32", features = ["clock", "serde"] }
+serde = { version = "1.0.195", features = ["derive"] }
 shuttle-runtime = "0.53.0"
 shuttle-shared-db = { version = "0.53.0", features = ["postgres"] }
-sqlx = { version = "0.8.2", features = [
-    "runtime-tokio-rustls",
-    "postgres",
-    "macros",
-] }
-tokio = { version = "1.28.2", features = ["macros", "rt-multi-thread"] }
-tower-http = { version = "0.6.2", features = ["cors", "fs"] }
-rig-core = "0.10.0"
-dotenv = "0.15"
-reqwest = { version = "0.11", features = ["json"] }
-futures = "0.3"
-unicode-segmentation = "1.10"
-chrono = "0.4"
-apalis = { version = "0.4", features = ["cron", "postgres", "retry"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-native-tls", "postgres"] }
+tokio = "1"
