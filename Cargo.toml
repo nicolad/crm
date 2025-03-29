@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[workspace]
+members = [
+    "connections-importer"
+]
+
 [dependencies]
 apalis = { version = "0.6", features = ["retry"] }
 apalis-sql = { version = "0.6", features = ["postgres"] }
