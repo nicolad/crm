@@ -59,15 +59,14 @@ async fn main() -> Result<()> {
         .await
         .expect("Failed to run migrations");
 
-    // Prompt: Do you want to import connections?
-    if ask_yes_no("Would you like to import Connections? (y/n)") {
-        import_connections(&pool).await?;
-    }
+    let args: Vec<String> = std::env::args().collect();
 
-    // Prompt: Do you want to import companies?
-    println!();
-    if ask_yes_no("Would you like to import Companies? (y/n)") {
-        import_companies(&pool).await?;
+    if args.len() > 1 && args[1] == "--add-company-id" {
+        println!("Running migrations to add company_id column...");
+        add_company_id();
+    } else {
+        println!("Usage:");
+        println!("  cargo run -p companies-importer -- --import");
     }
 
     Ok(())
