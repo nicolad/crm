@@ -247,7 +247,6 @@ async fn shuttle_main(
     #[shuttle_shared_db::Postgres] conn_string: String,
 ) -> Result<MyService, shuttle_runtime::Error> {
     dotenv().ok();
-    info!("shuttle_main: Starting up with provided Postgres connection string.");
 
     // Create connection pool
     let db = PgPoolOptions::new()
